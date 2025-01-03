@@ -1,3 +1,3 @@
 (executable
  (name html)
- (libraries dream-html))
+ (libraries dream eio_main fmt))
