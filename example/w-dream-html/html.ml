@@ -19,11 +19,11 @@ let greet _request who =
 let implode _request = failwith "Oh no!"
 
 let test_par env _ =
-  (fun _ -> Random.float 10_000.)
-  |> Array.init 10_000
+  0.1
+  |> Array.make 10
   |> Par.sum env
   |> Eio.Promise.await
-  |> string_of_float
+  |> Printf.sprintf "%.16f"
   |> Dream.html
 
 let () =

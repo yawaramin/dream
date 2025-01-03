@@ -24,12 +24,9 @@ val run : (env -> unit) -> unit
 
 val exec : < par : t; .. > -> (unit -> 'a) -> 'a array Eio.Promise.t
 (** [exec env fn] is a an array of results of running [fn] in the parallel task
-    runner provided by [env]. It is expected that the caller uses [num_domains]
-    and [id] to calculate the portion of the work that should be given to each
-    domain. *)
-
-val num_domains : int
-(** [num_domains] is just [Domain.recommended_domain_count ()]. *)
+    runner provided by [env]. It is expected that the caller uses
+    [Domain.recommended_domain_count ()] and [id ()] to calculate the portion of
+    the work that should be given to each domain. *)
 
 val id : unit -> int
 (** [id ()] is the integer ID of the current domain, starting from 0.
@@ -39,4 +36,6 @@ val id : unit -> int
 
 val sum : < par : t; .. > -> float array -> float Eio.Promise.t
 (** [sum env floats] is the sum of the [floats] calculated by distributing
-    portions of the work across all domains provided by [env]. *)
+    portions of the work across all domains provided by [env].
+
+    Also uses Kahan's summation algorithm to minimize precision errors. *)

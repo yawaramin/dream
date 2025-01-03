@@ -16,7 +16,6 @@ type env = <
   stdout : Eio_unix.sink_ty Eio.Resource.t
 >
 
-let num_domains = Domain.recommended_domain_count ()
 let id () = (Domain.self () :> int)
 
 let ( let+ ) promise f =
@@ -42,7 +41,7 @@ let mkenv streams prev = object
   method par = streams
 end
 
-let run domain = match num_domains with
+let run domain = match Domain.recommended_domain_count () with
   | 1 -> Eio_main.run (fun env -> domain (mkenv [||] env))
   | num_domains ->
     let streams = Array.init (pred num_domains) (fun _ -> Eio.Stream.create 32) in
@@ -60,7 +59,7 @@ let run domain = match num_domains with
 
 let exec env f =
   let promise, resolver = Eio.Promise.create ()
-  and promises = Array.init (pred num_domains) (fun idx ->
+  and promises = Array.init (Array.length env#par) (fun idx ->
     let p, r = Eio.Promise.create () in
     Eio.Stream.add env#par.(idx) (Task (f, Eio.Promise.resolve r));
     p)
@@ -72,15 +71,19 @@ let exec env f =
   promise
 
 let sum arr pos len =
-  let res = ref 0. in
+  let res = ref 0.
+  and carry = ref 0. in
   for idx = pos to pos + len - 1 do
-    res := !res +. arr.(idx)
+    let arr_idx = arr.(idx) -. !carry in
+    let temp = !res +. arr_idx in
+    carry := temp -. !res -. arr_idx;
+    res := temp
   done;
   !res
 
 let sum env arr =
   let len = Array.length arr
-  and num_workers = pred num_domains in
+  and num_workers = Array.length env#par in
   if len < num_workers then
     Eio.Promise.create_resolved (sum arr 0 len)
   else
