@@ -1,5 +1,6 @@
 let greeting = Dream_html.path "/greeting/%s" "/greeting/%s?src=%s"
 let whoops = Dream_html.path "/whoops" "/whoops"
+let par = Dream_html.path "/par" "/par"
 
 let greet _request who =
   let open Dream_html in
@@ -17,19 +18,23 @@ let greet _request who =
 
 let implode _request = failwith "Oh no!"
 
-let () =
-  Par.run @@ fun env ->
+let test_par env _ =
+  (fun _ -> Random.float 10_000.)
+  |> Array.init 10_000
+  |> Par.sum env
+  |> Eio.Promise.await
+  |> string_of_float
+  |> Dream.html
 
-  if Par.id () = 0 then
-    Printf.printf "\n%f\n%!" (Eio.Promise.await (Par.sum env [|
-      23.; 54.; 456.4; 547.4; 7456.4; 674.23; 6453.34; 5345.65; 67456.353;
-      64567.23; 6546.6; 4357.4;
-    |]));
+let () =
+  Random.self_init ();
+  Par.run @@ fun env ->
 
   Dream.run env
   @@ Dream.logger
   @@ Dream.router [
     Dream_html.get greeting greet;
     Dream_html.get whoops implode;
+    Dream_html.get par (test_par env);
     Dream.get "/static/**" (Dream.static (Eio.Stdenv.cwd env));
   ]
