@@ -17,6 +17,7 @@ type env = <
 >
 
 let id () = (Domain.self () :> int)
+let workers env = Array.length env#par
 
 let ( let+ ) promise f =
   let p, r = Eio.Promise.create () in
@@ -59,7 +60,7 @@ let run domain = match Domain.recommended_domain_count () with
 
 let exec env f =
   let promise, resolver = Eio.Promise.create ()
-  and promises = Array.init (Array.length env#par) (fun idx ->
+  and promises = Array.init (workers env) (fun idx ->
     let p, r = Eio.Promise.create () in
     Eio.Stream.add env#par.(idx) (Task (f, Eio.Promise.resolve r));
     p)
@@ -83,7 +84,7 @@ let sum arr pos len =
 
 let sum env arr =
   let len = Array.length arr
-  and num_workers = Array.length env#par in
+  and num_workers = workers env in
   if len < num_workers then
     Eio.Promise.create_resolved (sum arr 0 len)
   else

@@ -1,5 +1,6 @@
 name: test
-on: [push, pull_request]
+on:
+  #- push # TODO: add this back later
 
 jobs:
   test:

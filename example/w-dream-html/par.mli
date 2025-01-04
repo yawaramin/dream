@@ -24,9 +24,12 @@ val run : (env -> unit) -> unit
 
 val exec : < par : t; .. > -> (unit -> 'a) -> 'a array Eio.Promise.t
 (** [exec env fn] is a an array of results of running [fn] in the parallel task
-    runner provided by [env]. It is expected that the caller uses
-    [Domain.recommended_domain_count ()] and [id ()] to calculate the portion of
-    the work that should be given to each domain. *)
+    runner provided by [env]. It is expected that the caller uses [workers env]
+    and [id ()] to calculate the portion of the work that should be given to each
+    worker domain. *)
+
+val workers : env -> int
+(** [workers env] is the number of worker domains running in this [env]. *)
 
 val id : unit -> int
 (** [id ()] is the integer ID of the current domain, starting from 0.
