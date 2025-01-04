@@ -22,7 +22,6 @@ let test_par env _ =
   0.1
   |> Array.make 10
   |> Par.sum env
-  |> Eio.Promise.await
   |> Printf.sprintf "%.16f"
   |> Dream.html
 

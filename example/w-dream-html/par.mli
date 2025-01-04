@@ -22,7 +22,7 @@ val run : (env -> unit) -> unit
     starts running [fn] on all available cores. Also, it makes available a
     parallel task runner that can distribute the work across all available cores. *)
 
-val exec : < par : t; .. > -> (unit -> 'a) -> 'a array Eio.Promise.t
+val exec : < par : t; .. > -> (unit -> 'a) -> 'a array
 (** [exec env fn] is a an array of results of running [fn] in the parallel task
     runner provided by [env]. It is expected that the caller uses [workers env]
     and [id ()] to calculate the portion of the work that should be given to each
@@ -37,7 +37,7 @@ val id : unit -> int
     Note that domain ID 0 is never given any tasks to run by [exec]; it is kept
     free for I/O work. *)
 
-val sum : < par : t; .. > -> float array -> float Eio.Promise.t
+val sum : < par : t; .. > -> float array -> float
 (** [sum env floats] is the sum of the [floats] calculated by distributing
     portions of the work across all domains provided by [env].
 

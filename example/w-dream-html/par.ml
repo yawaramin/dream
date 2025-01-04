@@ -19,13 +19,6 @@ type env = <
 let id () = (Domain.self () :> int)
 let workers env = Array.length env#par
 
-let ( let+ ) promise f =
-  let p, r = Eio.Promise.create () in
-  Eio.Switch.run (fun sw ->
-  Eio.Fiber.fork ~sw (fun () ->
-  Eio.Promise.resolve r (f (Eio.Promise.await promise))));
-  p
-
 let mkenv streams prev = object
   method stdin = prev#stdin
   method stdout = prev#stdout
@@ -59,17 +52,16 @@ let run domain = match Domain.recommended_domain_count () with
     Eio.Fiber.all fibers
 
 let exec env f =
-  let promise, resolver = Eio.Promise.create ()
-  and promises = Array.init (workers env) (fun idx ->
+  let num_workers = workers env in
+  let promises = Array.init num_workers (fun idx ->
     let p, r = Eio.Promise.create () in
     Eio.Stream.add env#par.(idx) (Task (f, Eio.Promise.resolve r));
     p)
   in
-  Eio.Switch.run (fun sw ->
-  Eio.Fiber.fork ~sw (fun () ->
-  Eio.Promise.resolve resolver (Array.init (Array.length promises) (fun idx ->
-    Eio.Promise.await promises.(idx)))));
-  promise
+  let dynarr = Dynarray.create () in
+  Eio.Fiber.all (List.init num_workers (fun idx () ->
+    Dynarray.add_last dynarr (Eio.Promise.await promises.(idx))));
+  Dynarray.to_array dynarr
 
 let sum arr pos len =
   let res = ref 0.
@@ -86,11 +78,11 @@ let sum env arr =
   let len = Array.length arr
   and num_workers = workers env in
   if len < num_workers then
-    Eio.Promise.create_resolved (sum arr 0 len)
+    sum arr 0 len
   else
     let len1 = len / num_workers in
     let len0 = len1 + len mod num_workers in
-    let+ arr = exec env (fun () ->
+    let arr = exec env (fun () ->
       let idx = pred (id ()) in
       let pos = if idx = 1 then len0 else idx * len1 + len0 - len1 in
       sum arr pos (if idx = 0 then len0 else len1))
