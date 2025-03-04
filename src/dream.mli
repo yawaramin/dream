@@ -1736,14 +1736,14 @@ val graphiql : ?default_query:string -> string -> handler
     {{:https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html}
     OWASP {i Database Security Cheat Sheet}}. *)
 
-val sql_pool : ?size:int -> string -> middleware
+val sql_pool : ?size:int -> string -> stdenv:Caqti_eio.stdenv -> middleware
 (** Makes an SQL connection pool available to its inner handler. [?size] is the
     maximum number of concurrent connections that the pool will support. The
     default value is picked by the driver. Note that for SQLite, [?size] is
     capped to [1]. *)
 
 (* TODO Fix this signature. *)
-val sql : request -> ('c -> 'a) -> 'a
+val sql : request -> (Caqti_eio.connection -> 'a) -> 'a
 (** Runs the callback with a connection from the SQL pool. See example
     {{:https://github.com/aantron/dream/tree/master/example/h-sql#folders-and-files}
     [h-sql]}.

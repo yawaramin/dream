@@ -257,8 +257,7 @@ let all_session_fields = all_session_values
 let invalidate_session = Session.invalidate_session
 let memory_sessions = Session.memory_sessions
 let cookie_sessions = Session.cookie_sessions
-(* let sql_sessions = Sql_session.sql_sessions TODO *)
-let sql_sessions ?lifetime _ = ignore lifetime; assert false
+let sql_sessions = Sql_session.sql_sessions
 let session_id = Session.session_id
 let session_label = Session.session_label
 let session_expires_at = Session.session_expires_at
@@ -286,9 +285,9 @@ let graphiql ?default_query:_ _ = assert false
 (* SQL *)
 
 (* let sql_pool = Sql.sql_pool TODO *)
-let sql_pool ?size:_ _ = assert false
+let sql_pool = Sql.sql_pool
 (* let sql = Sql.sql TODO *)
-let sql _ = assert false
+let sql = Sql.sql
 
 
 
