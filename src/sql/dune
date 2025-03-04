@@ -3,9 +3,15 @@
  (name dream__sql)
  (libraries
   caqti
+  caqti-eio
+  eio
+  eio_main
+  eio.unix
+  caqti-eio.unix
   dream.cipher
   dream-pure
   dream.server
   uri
   yojson)
- (instrumentation (backend bisect_ppx)))
+ (instrumentation
+  (backend bisect_ppx)))

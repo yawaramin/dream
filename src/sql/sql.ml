@@ -14,9 +14,9 @@ let log =
   Log.sub_log "dream.sql"
 
 (* TODO Restore everything here. *)
-(**
+
 (* TODO Debug metadata for the pools. *)
-let pool_field : (_, Caqti_error.t) Caqti_lwt_unix.Pool.t Message.field =
+let pool_field : (_, Caqti_error.t) Caqti_eio.Pool.t Message.field =
   Message.new_field ()
 
 (* TODO This may not be necessary since Caqti 1.8.0. May require some messing
@@ -27,12 +27,12 @@ let foreign_keys_on =
   (Caqti_type.unit ->. Caqti_type.unit) "PRAGMA foreign_keys = ON"
   [@ocaml.warning "-3"]
 
-let post_connect (module Db : Caqti_lwt.CONNECTION) =
+let post_connect (module Db : Caqti_eio.CONNECTION) =
   match Caqti_driver_info.dialect_tag Db.driver_info with
   | `Sqlite -> Db.exec foreign_keys_on ()
-  | _ -> Lwt.return (Ok ())
+  | _ -> Ok ()
 
-let sql_pool ?size uri =
+let sql_pool ?size uri ~stdenv =
     let pool_cell = ref None in
     fun inner_handler request ->
 
@@ -51,7 +51,8 @@ let sql_pool ?size uri =
         'sqlite' is not a valid scheme; did you mean 'sqlite3'?");
     let pool =
       let pool_config = Caqti_pool_config.create ?max_size:size () in
-      Caqti_lwt_unix.connect_pool ~pool_config ~post_connect parsed_uri in
+      Eio.Switch.run @@ fun sw ->
+      Caqti_eio_unix.connect_pool ~stdenv ~sw ~pool_config ~post_connect parsed_uri in
     match pool with
     | Ok pool ->
       pool_cell := Some pool;
@@ -73,8 +74,8 @@ let sql_pool ?size uri =
    make progress and request handling deadlocks. This can occur when using SQL
    sessions, a typical scenario. See
    https://github.com/aantron/dream/issues/332. *)
-let acquired_sql_connection : bool Lwt.key =
-  Lwt.new_key ()
+let acquired_sql_connection : bool Eio.Fiber.key =
+  Eio.Fiber.create_key ()
 
 let sql request callback =
   match Message.field request pool_field with
@@ -83,7 +84,7 @@ let sql request callback =
     log.error (fun log -> log ~request "%s" message);
     failwith message
   | Some pool ->
-    begin match Lwt.get acquired_sql_connection with
+    begin match Eio.Fiber.get acquired_sql_connection with
     | None | Some false -> ()
     | Some true ->
       let message =
@@ -92,14 +93,13 @@ let sql request callback =
       in
       log.warning (fun log -> log ~request "%s" message)
     end;
-    let%lwt result =
-      pool |> Caqti_lwt_unix.Pool.use (fun db ->
-        Lwt.with_value acquired_sql_connection (Some true) @@ fun () ->
+    let result =
+      pool |> Caqti_eio.Pool.use (fun db ->
+        Eio.Fiber.with_binding acquired_sql_connection (true) @@ fun () ->
         (* The special exception handling is a workaround for
            https://github.com/paurkedal/ocaml-caqti/issues/68. *)
-        match%lwt callback db with
-        | result -> Lwt.return (Ok result)
+        match callback db with
+        | result -> (Ok result)
         | exception exn -> raise exn)
     in
-    Caqti_lwt.or_fail result
-*)
+    Caqti_eio.or_fail result
